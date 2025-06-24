@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMA 1 Lhokseumawe - Reset Password</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f0f2f5;
+        }
+        .email-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+            text-align: center;
+        }
+        .email-header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+        }
+        .email-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .email-content {
+            padding: 30px;
+        }
+        .reset-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white !important;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: background-color 0.3s ease;
+            max-width: calc(100% - 48px);
+            overflow-wrap: break-word;
+        }
+        .reset-button:hover {
+            background-color: #1d4ed8;
+        }
+        .email-footer {
+            background-color: #f0f2f5;
+            color: #6b7280;
+            padding: 15px;
+            font-size: 0.875rem;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="email-container">
+            <div class="email-header">
+                <h2>Reset Kata Sandi</h2>
+            </div>
+            <div class="email-content">
+                <p>Halo,</p>
+                
+                <p>Anda telah mengajukan permintaan untuk mengatur ulang kata sandi akun Anda di SMA 1 Lhokseumawe.</p>
+                
+                <p>Untuk melanjutkan proses pengaturan ulang kata sandi, silakan klik tombol di bawah ini:</p>
+                
+                <a href="{{linkReset}}" class="reset-button">Atur Ulang Kata Sandi</a>
+                
+                <p>Jika Anda tidak merasa meminta verifikasi ini, harap abaikan email ini atau hubungi admin jika merasa ada aktivitas mencurigakan.</p>
+                
+                <p>Terima kasih,<br>Tim Administrasi<br>SMA 1 Lhokseumawe</p>
+            </div>
+            <div class="email-footer">
+                &copy; 2025 SMA 1 Lhokseumawe. Hak Cipta Dilindungi.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
