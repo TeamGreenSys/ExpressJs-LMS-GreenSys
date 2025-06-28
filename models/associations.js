@@ -5,7 +5,11 @@ const Kelas = require("./KelasModel");
 const Modul = require("./ModulModel");
 const SubModul = require("./SubModulModel");
 const Certificate = require("./CertificateModel");
-const StudentProgress = require("./StudentProgressModel"); // ✅ Import model baru
+const StudentProgress = require("./StudentProgressModel");
+const GroupSoal = require("./GroupSoalModel");
+const Soal = require("./SoalModel");
+const Nilai = require("./NilaiModel");
+const NilaiSoal = require("./NilaiSoalModel");
 
 function setupAssociations() {
   // User Associations
@@ -23,6 +27,21 @@ function setupAssociations() {
 
   Users.hasMany(SubModul);
   SubModul.belongsTo(Users, { foreignKey: "userId" });
+
+  Users.hasMany(Certificate);
+  Certificate.belongsTo(Users, { foreignKey: "userId" });
+
+  Users.hasMany(StudentProgress);
+  StudentProgress.belongsTo(Users, { foreignKey: "userId" });
+
+  Users.hasMany(GroupSoal);
+  GroupSoal.belongsTo(Users, { foreignKey: "userId" });
+
+  Users.hasMany(Soal);
+  Soal.belongsTo(Users, { foreignKey: "userId" });
+
+  Users.hasMany(Nilai);
+  Nilai.belongsTo(Users, { foreignKey: "userId" });
 
   // Kelas Associations
   Kelas.hasMany(Siswa, {
@@ -75,7 +94,6 @@ function setupAssociations() {
     hooks: true,
   });
 
-  // ✅ NEW: StudentProgress Associations
   Siswa.hasMany(StudentProgress, {
     foreignKey: "siswaId",
     onDelete: "CASCADE",
@@ -111,6 +129,83 @@ function setupAssociations() {
     onDelete: "CASCADE",
     hooks: true,
   });
+
+  // Group Soal Associations
+  Kelas.hasMany(GroupSoal, {
+    foreignKey: "kelasId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  GroupSoal.belongsTo(Kelas, {
+    foreignKey: "kelasId",
+    as: "kelas",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  // Soal Associations
+  GroupSoal.hasMany(Soal, {
+    foreignKey: "groupSoalId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Soal.belongsTo(GroupSoal, {
+    foreignKey: "groupSoalId",
+    as: "groupSoal",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  // Nilai Associations
+  Siswa.hasMany(Nilai, {
+    foreignKey: "siswaId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Nilai.belongsTo(Siswa, {
+    foreignKey: "siswaId",
+    as: "siswa",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  GroupSoal.hasMany(Nilai, {
+    foreignKey: "groupSoalId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Nilai.belongsTo(GroupSoal, {
+    foreignKey: "groupSoalId",
+    as: "groupSoal",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  // NilaiSoal Associations
+  Nilai.hasMany(NilaiSoal, {
+    foreignKey: "nilaiId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  NilaiSoal.belongsTo(Nilai, {
+    foreignKey: "nilaiId",
+    as: "nilai",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  Soal.hasMany(NilaiSoal, {
+    foreignKey: "soalId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  NilaiSoal.belongsTo(Soal, {
+    foreignKey: "soalId",
+    as: "soal",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
 }
 
 module.exports = setupAssociations;

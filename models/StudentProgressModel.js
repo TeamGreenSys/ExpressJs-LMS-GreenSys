@@ -61,6 +61,13 @@ const StudentProgress = db.define('student_progress', {
     notes: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    userId:{
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate:{
+            notEmpty: true
+        }
     }
 }, {
     freezeTableName: true,

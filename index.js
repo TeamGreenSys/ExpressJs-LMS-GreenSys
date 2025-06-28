@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const dotenv = require("dotenv");
+const path = require('path');
 const db = require("./config/Database.js");
 const SequelizeStore = require("connect-session-sequelize");
 const cookieParser = require("cookie-parser");
@@ -19,6 +20,9 @@ const ModulRoute = require("./routes/ModulRoute.js");
 const SubModulRoute = require("./routes/SubModulRoute.js");
 const CertificateRoute = require("./routes/CertificateRoute.js");
 const StudentProgressRoute = require("./routes/StudentProgressRoute.js");
+const GroupSoalRoute = require("./routes/GroupSoalRoute.js");
+const SoalRoute = require("./routes/SoalRoute.js");
+const NilaiRoute = require("./routes/NilaiRoute.js");
 
 dotenv.config();
 const app = express();
@@ -78,7 +82,13 @@ app.use(express.json());
 app.use(FileUpload());
 app.use(express.static("public"));
 app.use("/images", express.static("./public/images"))
-app.use("/certificates", express.static("./public/certificates"))
+app.use("/certificates", (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', 'certificates', req.url);
+  if (filePath.endsWith('.pdf')) {
+    res.setHeader('Content-Type', 'application/pdf');
+  }
+  next();
+}, express.static("./public/certificates"));
 app.use("/templates", express.static("./public/templates"))
 
 app.use(AuthRoute);
@@ -90,5 +100,8 @@ app.use(ModulRoute);
 app.use(SubModulRoute);
 app.use(CertificateRoute);
 app.use(StudentProgressRoute);
+app.use(GroupSoalRoute);
+app.use(SoalRoute);
+app.use(NilaiRoute);
 
 app.listen(process.env.APP_PORT, ()=> console.log("Server Sedang berjalan"));

@@ -38,6 +38,14 @@ const startProgress = async (req, res) => {
       }
     });
 
+    const userId = req.userId;
+
+      if (!userId) {
+        return res
+          .status(400)
+          .json({ error: "User ID not found in the request" });
+      }
+
     if (progress) {
       // Update last accessed time
       progress.lastAccessedAt = new Date();
@@ -49,7 +57,8 @@ const startProgress = async (req, res) => {
         subModulId: subModulId,
         modulId: subModul.modulId,
         isCompleted: false,
-        lastAccessedAt: new Date()
+        lastAccessedAt: new Date(),
+        userId: req.userId,
       });
     }
 
