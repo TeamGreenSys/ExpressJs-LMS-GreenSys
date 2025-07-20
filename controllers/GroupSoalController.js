@@ -1,4 +1,5 @@
 const GroupSoal = require("../models/GroupSoalModel.js");
+const Modul = require("../models/ModulModel.js");
 const Kelas = require("../models/KelasModel.js");
 const Soal = require("../models/SoalModel.js");
 const Users = require("../models/UserModel.js");
@@ -16,6 +17,11 @@ const getAllGroupSoal = async (req, res) => {
         {
           model: Kelas,
           as: "kelas",
+        },
+        {
+          model: Modul,
+          as: "modul",
+          attributes: ["judul", "deskripsi", "url"],
         },
         {
           model: Users,
@@ -37,6 +43,11 @@ const getGroupSoal = async (req, res) => {
           {
             model: Users,
             attributes: ["username", "email", "role"],
+          },
+          {
+            model: Modul,
+            as: "modul",
+            attributes: ["judul", "deskripsi", "url"],
           },
         ],
       });
@@ -74,6 +85,11 @@ const getGroupSoalById = async (req, res) => {
             model: Users,
             attributes: ["username", "email", "role"],
           },
+          {
+            model: Modul,
+            as: "modul",
+            attributes: ["judul", "deskripsi", "url"],
+          },
         ],
       });
     } else {
@@ -86,6 +102,11 @@ const getGroupSoalById = async (req, res) => {
           {
             model: Users,
             attributes: ["username", "email", "role"],
+          },
+          {
+            model: Modul,
+            as: "modul",
+            attributes: ["judul", "deskripsi", "url"],
           },
         ],
       });
@@ -100,6 +121,7 @@ const createGroupSoal = async (req, res) => {
   const judul = req.body.judul;
   const durasi = req.body.durasi;
   const kelasId = req.body.kelasId;
+  const modulId = req.body.modulId;
 
   try {
     const userId = req.userId;
@@ -114,6 +136,7 @@ const createGroupSoal = async (req, res) => {
       judul: judul,
       durasi: durasi,
       kelasId: kelasId,
+      modulId: modulId,
       userId: req.userId,
     });
 

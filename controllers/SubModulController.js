@@ -5,6 +5,77 @@ const Modul = require("../models/ModulModel.js");
 const { Op } = require("sequelize");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
+
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API || "AIzaSyAqUq6TQjaWUFHbDuUG0259CmJ8gNi3hyo";
+
+// Fungsi untuk mengekstrak video ID dari URL YouTube
+const extractVideoId = (url) => {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+// Fungsi untuk konversi durasi ISO 8601 ke detik
+const parseISO8601Duration = (duration) => {
+  const regex = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+  const matches = duration.match(regex);
+  
+  const days = parseInt(matches[1]) || 0;
+  const hours = parseInt(matches[2]) || 0;
+  const minutes = parseInt(matches[3]) || 0;
+  const seconds = parseInt(matches[4]) || 0;
+  
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+};
+
+// Fungsi untuk format detik ke format MM:SS atau HH:MM:SS
+const formatDuration = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+};
+
+// Fungsi untuk mendapatkan durasi video YouTube
+const getYouTubeDuration = async (videoUrl) => {
+  try {
+    if (!YOUTUBE_API_KEY) {
+      console.log("YouTube API Key not found");
+      return null;
+    }
+
+    const videoId = extractVideoId(videoUrl);
+    if (!videoId) {
+      console.log("Invalid YouTube URL");
+      return null;
+    }
+
+    const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
+      params: {
+        id: videoId,
+        part: 'contentDetails',
+        key: YOUTUBE_API_KEY
+      }
+    });
+
+    if (response.data.items && response.data.items.length > 0) {
+      const duration = response.data.items[0].contentDetails.duration;
+      const totalSeconds = parseISO8601Duration(duration);
+      return formatDuration(totalSeconds);
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching YouTube duration:", error.message);
+    return null;
+  }
+};
 
 const getSubModul = async (req, res) => {
   try {
@@ -136,8 +207,36 @@ const createSubModul = async (req, res) => {
   if (fileSize > 5000000)
     return res.status(422).json({ msg: "Image must be less than 5 MB" });
 
+  // Handle PDF file upload
+  let pdfFileName = null;
+  let pdfUrl = null;
+  
+  if (req.files.pdfFile) {
+    const pdfFile = req.files.pdfFile;
+    const pdfFileSize = pdfFile.data.length;
+    const pdfExt = path.extname(pdfFile.name);
+    
+    if (pdfExt.toLowerCase() !== '.pdf') {
+      return res.status(422).json({ msg: "File must be PDF format" });
+    }
+    
+    if (pdfFileSize > 10000000) { // 10MB limit for PDF
+      return res.status(422).json({ msg: "PDF file must be less than 10 MB" });
+    }
+    
+    pdfFileName = now + pdfFile.md5 + pdfExt;
+    pdfUrl = `${req.protocol}://${req.get("host")}/pdf/${pdfFileName}`;
+  }
+
   file.mv(`./public/images/${fileName}`, async (err) => {
     if (err) return res.status(500).json({ msg: err.message });
+
+    // Upload PDF file if exists
+    if (req.files.pdfFile) {
+      req.files.pdfFile.mv(`./public/pdf/${pdfFileName}`, (pdfErr) => {
+        if (pdfErr) return res.status(500).json({ msg: pdfErr.message });
+      });
+    }
 
     try {
       const userId = req.userId;
@@ -148,10 +247,19 @@ const createSubModul = async (req, res) => {
           .json({ error: "User ID not found in the request" });
       }
 
+      let videoDuration = null;
+      if (urlYoutube) {
+        videoDuration = await getYouTubeDuration(urlYoutube);
+        console.log("Video duration:", videoDuration);
+      }
+
       await SubModul.create({
         subJudul: subJudul,
         subDeskripsi: subDeskripsi,
         urlYoutube: urlYoutube,
+        time: videoDuration,
+        namaPdf: pdfFileName,
+        urlPdf: pdfUrl,
         coverImage: fileName,
         url: url,
         modulId: modulId,
@@ -175,6 +283,8 @@ const updateSubModul = async (req, res) => {
 
   let fileName = subModul.coverImage;
   let url = subModul.url;
+  let pdfFileName = subModul.namaPdf;
+  let pdfUrl = subModul.urlPdf;
 
   // Check if user wants to remove image completely
   if (req.body.removeImage === 'true') {
@@ -226,14 +336,75 @@ const updateSubModul = async (req, res) => {
     url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
   }
 
-  const { subJudul, subDeskripsi, linkYoutube, modulId } = req.body;
+  // Handle PDF file operations
+  if (req.body.removePdf === 'true') {
+    // Delete existing PDF file
+    if (subModul.namaPdf) {
+      const pdfFilepath = `./public/pdf/${subModul.namaPdf}`;
+      try {
+        if (fs.existsSync(pdfFilepath)) {
+          fs.unlinkSync(pdfFilepath);
+        }
+      } catch (err) {
+        console.log("Error deleting PDF file:", err);
+      }
+    }
+    pdfFileName = null;
+    pdfUrl = null;
+  }
+  // Check if new PDF is uploaded
+  else if (req.files && req.files.pdfFile) {
+    const pdfFile = req.files.pdfFile;
+    const pdfFileSize = pdfFile.data.length;
+    const pdfExt = path.extname(pdfFile.name);
+    const now = Date.now();
+    
+    if (pdfExt.toLowerCase() !== '.pdf') {
+      return res.status(422).json({ msg: "File must be PDF format" });
+    }
+    
+    if (pdfFileSize > 10000000) { // 10MB limit for PDF
+      return res.status(422).json({ msg: "PDF file must be less than 10 MB" });
+    }
+
+    // Delete old PDF if exists
+    if (subModul.namaPdf) {
+      const pdfFilepath = `./public/pdf/${subModul.namaPdf}`;
+      try {
+        if (fs.existsSync(pdfFilepath)) {
+          fs.unlinkSync(pdfFilepath);
+        }
+      } catch (err) {
+        console.log("Error deleting old PDF file:", err);
+      }
+    }
+
+    pdfFileName = now + pdfFile.md5 + pdfExt;
+    pdfUrl = `${req.protocol}://${req.get("host")}/pdf/${pdfFileName}`;
+
+    // Upload new PDF file
+    pdfFile.mv(`./public/pdf/${pdfFileName}`, (err) => {
+      if (err) return res.status(500).json({ msg: err.message });
+    });
+  }
+
+  const { subJudul, subDeskripsi, urlYoutube, modulId } = req.body;
 
   try {
+    let videoDuration = subModul.time; // Keep existing duration
+    if (urlYoutube && urlYoutube !== subModul.urlYoutube) {
+      videoDuration = await getYouTubeDuration(urlYoutube);
+      console.log("Updated video duration:", videoDuration);
+    }
+
     await SubModul.update(
       {
         subJudul: subJudul,
         subDeskripsi: subDeskripsi,
-        linkYoutube: linkYoutube,
+        urlYoutube: urlYoutube,
+        time: videoDuration,
+        namaPdf: pdfFileName,
+        urlPdf: pdfUrl,
         coverImage: fileName,
         url: url,
         modulId: modulId,
@@ -261,16 +432,39 @@ const deleteSubModul = async (req, res) => {
   if (!subModul) return res.status(404).json({ msg: "No Data Found" });
 
   try {
-    const filepath = `./public/images/${subModul.coverImage}`;
-    fs.unlinkSync(filepath);
+    // Delete image file if exists
+    if (subModul.coverImage) {
+      const imageFilepath = `./public/images/${subModul.coverImage}`;
+      try {
+        if (fs.existsSync(imageFilepath)) {
+          fs.unlinkSync(imageFilepath);
+        }
+      } catch (err) {
+        console.log("Error deleting image file:", err);
+      }
+    }
+
+    // Delete PDF file if exists
+    if (subModul.namaPdf) {
+      const pdfFilepath = `./public/pdf/${subModul.namaPdf}`;
+      try {
+        if (fs.existsSync(pdfFilepath)) {
+          fs.unlinkSync(pdfFilepath);
+        }
+      } catch (err) {
+        console.log("Error deleting PDF file:", err);
+      }
+    }
+
     await SubModul.destroy({
       where: {
         id: req.params.id,
       },
     });
-    res.status(200).json({ msg: "Sub Modul Deleted Successfuly" });
+    res.status(200).json({ msg: "Sub Modul Deleted Successfully" });
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ msg: "Internal Server Error" });
   }
 };
 

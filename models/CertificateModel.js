@@ -12,6 +12,10 @@ const Certificate = db.define('certificate', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    nilaiId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     certificateFile: {
         type: DataTypes.STRING,
         allowNull: false,

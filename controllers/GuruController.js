@@ -86,7 +86,7 @@ const getGuruById = async (req, res) => {
         let response;
         if (req.role === "admin") {
             response = await Guru.findOne({
-                attributes: ['id', 'nip', 'nama', 'email', 'gender', 'tanggalLahir', 'alamat', 'image', 'url'],
+                attributes: ['id', 'nip', 'nama', 'email', 'noHp', 'gender', 'tanggalLahir', 'alamat', 'image', 'url'],
                 where: {
                     id: req.params.id
                 },
@@ -97,7 +97,7 @@ const getGuruById = async (req, res) => {
             })
         } else {
             response = await Guru.findOne({
-                attributes: ['id', 'nip', 'nama', 'email', 'gender', 'tanggalLahir', 'alamat', 'image', 'url'],
+                attributes: ['id', 'nip', 'nama', 'email', 'noHp', 'gender', 'tanggalLahir', 'alamat', 'image', 'url'],
                 where: {
                     [Op.and]: [{ id: req.params.id }, { userId: req.userId }]
                 },
@@ -118,6 +118,7 @@ const createGuru = async (req, res) => {
       const nip = req.body.nip;
       const nama = req.body.nama;
       const email = req.body.email;
+      const noHp = req.body.noHp;
       const gender = req.body.gender;
       const tanggalLahir = req.body.tanggalLahir;
       const alamat = req.body.alamat;
@@ -155,6 +156,7 @@ const createGuru = async (req, res) => {
         nip: nip,
         nama: nama,
         email: email,
+        noHp: noHp,
         gender: gender,
         tanggalLahir: tanggalLahir,
         alamat: alamat,
@@ -219,6 +221,7 @@ const createGuru = async (req, res) => {
     const nip = req.body.nip;
     const nama = req.body.nama;
     const email = req.body.email;
+    const noHp = req.body.noHp;
     const gender = req.body.gender;
     const tanggalLahir = req.body.tanggalLahir;
     const alamat = req.body.alamat;
@@ -230,6 +233,7 @@ const createGuru = async (req, res) => {
           nip: nip,
           nama: nama,
           email: email,
+          noHp: noHp,
           gender: gender,
           tanggalLahir: tanggalLahir,
           alamat: alamat,

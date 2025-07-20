@@ -1,6 +1,7 @@
 const Nilai = require("../models/NilaiModel.js");
 const NilaiSoal = require("../models/NilaiSoalModel.js");
 const Siswa = require("../models/SiswaModel.js");
+const Modul = require("../models/ModulModel.js");
 const GroupSoal = require("../models/GroupSoalModel.js");
 const Soal = require("../models/SoalModel.js");
 const Kelas = require("../models/KelasModel.js");
@@ -19,6 +20,11 @@ const getQuizByGroupId = async (req, res) => {
           as: "kelas",
           attributes: ["id", "kelas", "namaKelas"],
         },
+        {
+          model: Modul,
+          as: "modul",
+          attributes: ["judul", "deskripsi", "url"],
+        },
       ],
     });
 
@@ -29,7 +35,16 @@ const getQuizByGroupId = async (req, res) => {
     // Get all soal for this group
     const soals = await Soal.findAll({
       where: { groupSoalId: groupId },
-      attributes: ["id", "soal", "optionA", "optionB", "optionC", "optionD", "optionE", "correctAnswer"],
+      attributes: [
+        "id",
+        "soal",
+        "optionA",
+        "optionB",
+        "optionC",
+        "optionD",
+        "optionE",
+        "correctAnswer",
+      ],
       order: [["id", "ASC"]],
     });
 
@@ -45,6 +60,7 @@ const getQuizByGroupId = async (req, res) => {
           judul: groupSoal.judul,
           durasi: groupSoal.durasi,
           kelas: groupSoal.kelas,
+          modul: groupSoal.modul,
         },
         soals: soals,
         totalSoal: soals.length,
@@ -56,12 +72,13 @@ const getQuizByGroupId = async (req, res) => {
   }
 };
 
-// Submit quiz results
+// Submit quiz results - Modified to allow retakes
 const submitQuiz = async (req, res) => {
   try {
     console.log("Received quiz submission:", req.body);
-    
-    const { skor, jumlahJawabanBenar, siswaId, groupSoalId, detailedAnswers } = req.body;
+
+    const { skor, jumlahJawabanBenar, siswaId, groupSoalId, detailedAnswers } =
+      req.body;
     const userId = req.userId;
 
     // Validate required fields with more detailed logging
@@ -69,25 +86,29 @@ const submitQuiz = async (req, res) => {
       console.log("Missing skor:", skor);
       return res.status(400).json({ message: "Skor diperlukan" });
     }
-    
+
     if (jumlahJawabanBenar === undefined || jumlahJawabanBenar === null) {
       console.log("Missing jumlahJawabanBenar:", jumlahJawabanBenar);
-      return res.status(400).json({ message: "Jumlah jawaban benar diperlukan" });
+      return res
+        .status(400)
+        .json({ message: "Jumlah jawaban benar diperlukan" });
     }
-    
+
     if (!siswaId) {
       console.log("Missing siswaId:", siswaId);
       return res.status(400).json({ message: "Siswa ID diperlukan" });
     }
-    
+
     if (!groupSoalId) {
       console.log("Missing groupSoalId:", groupSoalId);
       return res.status(400).json({ message: "Group soal ID diperlukan" });
     }
-    
+
     if (!detailedAnswers || !Array.isArray(detailedAnswers)) {
       console.log("Missing or invalid detailedAnswers:", detailedAnswers);
-      return res.status(400).json({ message: "Detailed answers diperlukan dan harus berupa array" });
+      return res.status(400).json({
+        message: "Detailed answers diperlukan dan harus berupa array",
+      });
     }
 
     // Check if siswa exists
@@ -108,50 +129,68 @@ const submitQuiz = async (req, res) => {
     const existingNilai = await Nilai.findOne({
       where: {
         siswaId: siswaId,
-        groupSoalId: groupSoalId
-      }
+        groupSoalId: groupSoalId,
+      },
     });
-
-    if (existingNilai) {
-      console.log("Student already took quiz:", { siswaId, groupSoalId });
-      return res.status(400).json({ 
-        message: "Anda sudah mengerjakan kuis ini sebelumnya" 
-      });
-    }
 
     // Get total soal count for validation
     const totalSoal = await Soal.count({
-      where: { groupSoalId: groupSoalId }
+      where: { groupSoalId: groupSoalId },
     });
 
-    console.log("Creating nilai record with data:", {
-      skor: parseFloat(skor),
-      jumlahJawabanBenar: parseInt(jumlahJawabanBenar),
-      jumlahSoal: totalSoal,
-      siswaId: parseInt(siswaId),
-      groupSoalId: parseInt(groupSoalId),
-      userId: userId,
-    });
+    const skorFloat = parseFloat(skor);
+    const jumlahJawabanBenarInt = parseInt(jumlahJawabanBenar);
 
-    // Create nilai record
-    const nilai = await Nilai.create({
-      skor: parseFloat(skor),
-      jumlahJawabanBenar: parseInt(jumlahJawabanBenar),
-      jumlahSoal: totalSoal,
-      siswaId: parseInt(siswaId),
-      groupSoalId: parseInt(groupSoalId),
-      userId: userId,
-    });
+    let nilai;
 
-    console.log("Nilai created successfully:", nilai.id);
+    if (existingNilai) {
+      // Update existing record (retake quiz)
+      console.log("Updating existing quiz result for:", { siswaId, groupSoalId });
+      
+      await existingNilai.update({
+        skor: skorFloat,
+        jumlahJawabanBenar: jumlahJawabanBenarInt,
+        jumlahSoal: totalSoal,
+        userId: userId,
+      });
 
-    // Create detailed answers records
+      // Delete old detailed answers
+      await NilaiSoal.destroy({
+        where: { nilaiId: existingNilai.id },
+      });
+
+      nilai = existingNilai;
+      console.log("Existing nilai updated successfully:", nilai.id);
+    } else {
+      // Create new record (first attempt)
+      console.log("Creating new nilai record with data:", {
+        skor: skorFloat,
+        jumlahJawabanBenar: jumlahJawabanBenarInt,
+        jumlahSoal: totalSoal,
+        siswaId: parseInt(siswaId),
+        groupSoalId: parseInt(groupSoalId),
+        userId: userId,
+      });
+
+      nilai = await Nilai.create({
+        skor: skorFloat,
+        jumlahJawabanBenar: jumlahJawabanBenarInt,
+        jumlahSoal: totalSoal,
+        siswaId: parseInt(siswaId),
+        groupSoalId: parseInt(groupSoalId),
+        userId: userId,
+      });
+
+      console.log("New nilai created successfully:", nilai.id);
+    }
+
+    // Create new detailed answers records
     if (detailedAnswers && Array.isArray(detailedAnswers)) {
-      const nilaiSoalData = detailedAnswers.map(answer => ({
+      const nilaiSoalData = detailedAnswers.map((answer) => ({
         nilaiId: nilai.id,
         soalId: answer.soalId,
         jawaban: answer.jawaban,
-        benar: answer.benar || false
+        benar: answer.benar || false,
       }));
 
       console.log("Creating NilaiSoal records:", nilaiSoalData.length);
@@ -159,10 +198,15 @@ const submitQuiz = async (req, res) => {
       console.log("NilaiSoal records created successfully");
     }
 
+    const responseMessage = existingNilai 
+      ? "Kuis berhasil dikerjakan ulang dan nilai telah diperbarui"
+      : "Quiz berhasil diselesaikan";
+
     res.status(201).json({
       success: true,
-      message: "Quiz berhasil diselesaikan",
+      message: responseMessage,
       nilaiId: nilai.id,
+      isRetake: !!existingNilai,
       data: {
         id: nilai.id,
         skor: nilai.skor,
@@ -175,10 +219,10 @@ const submitQuiz = async (req, res) => {
   } catch (error) {
     console.error("Error submitting quiz:", error);
     console.error("Error stack:", error.stack);
-    res.status(500).json({ 
-      message: "Terjadi kesalahan server", 
+    res.status(500).json({
+      message: "Terjadi kesalahan server",
       error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -208,7 +252,14 @@ const getQuizResult = async (req, res) => {
         {
           model: GroupSoal,
           as: "groupSoal",
-          attributes: ["judul", "durasi"],
+          attributes: ["id", "judul", "durasi"],
+          include: [
+            {
+              model: Modul,
+              as: "modul",
+              attributes: ["id", "judul", "deskripsi", "url"],
+            },
+          ],
         },
         {
           model: NilaiSoal,
@@ -217,7 +268,15 @@ const getQuizResult = async (req, res) => {
             {
               model: Soal,
               as: "soal",
-              attributes: ["soal", "optionA", "optionB", "optionC", "optionD", "optionE", "correctAnswer"],
+              attributes: [
+                "soal",
+                "optionA",
+                "optionB",
+                "optionC",
+                "optionD",
+                "optionE",
+                "correctAnswer",
+              ],
             },
           ],
         },
@@ -252,9 +311,9 @@ const getStudentQuizResults = async (req, res) => {
           attributes: ["judul", "durasi"],
           include: [
             {
-              model: Kelas,
-              as: "kelas",
-              attributes: ["kelas", "namaKelas"],
+              model: Modul,
+              as: "modul",
+              attributes: ["id", "judul"],
             },
           ],
         },
@@ -296,6 +355,13 @@ const getAllQuizResults = async (req, res) => {
           model: GroupSoal,
           as: "groupSoal",
           attributes: ["judul", "durasi"],
+          include: [
+            {
+              model: Modul,
+              as: "modul",
+              attributes: ["judul"],
+            },
+          ],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -323,7 +389,7 @@ const deleteQuizResult = async (req, res) => {
 
     // Delete related NilaiSoal records first
     await NilaiSoal.destroy({
-      where: { nilaiId: nilaiId }
+      where: { nilaiId: nilaiId },
     });
 
     // Delete the Nilai record

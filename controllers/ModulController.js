@@ -1,4 +1,6 @@
 const Modul = require("../models/ModulModel.js");
+const Nilai = require("../models/NilaiModel.js");
+const GroupSoal = require("../models/GroupSoalModel.js");
 const Users = require("../models/UserModel.js");
 
 const { Op } = require("sequelize");
@@ -14,6 +16,9 @@ const getModul = async (req, res) => {
             model: Users,
             attributes: ["username", "email", "role"],
           },
+          {
+            model: GroupSoal,
+          }
         ],
       });
       res.status(200).json(response);
@@ -27,6 +32,9 @@ const getModul = async (req, res) => {
             model: Users,
             attributes: ["username", "email", "role"],
           },
+          {
+            model: GroupSoal,
+          }
         ],
       });
       res.status(200).json(response);
@@ -49,6 +57,16 @@ const getModulById = async (req, res) => {
             model: Users,
             attributes: ["username", "email", "role"],
           },
+          {
+            model: GroupSoal,
+            include: [
+              {
+                model: Nilai,
+                as: "nilais",
+                attributes: ["skor"],
+              }
+            ]
+          }
         ],
       });
     } else {
@@ -61,12 +79,23 @@ const getModulById = async (req, res) => {
             model: Users,
             attributes: ["username", "email", "role"],
           },
+          {
+            model: GroupSoal,
+            include: [
+              {
+                model: Nilai,
+                as: "nilais",
+                attributes: ["skor"],
+              }
+            ]
+          }
         ],
       });
     }
     res.status(200).json(response);
   } catch (error) {
     console.log(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 

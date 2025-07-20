@@ -17,7 +17,7 @@ router.get('/guru', verifyUser, getGuru)
 router.get("/profile-guru", verifyUser, getProfileGuru);
 router.get('/guru/:id', verifyUser, getGuruById)
 router.post('/guru', verifyUser, createGuru)
-router.patch('/guru/:id', verifyUser, guruOnly, updateProfileGuru)
+router.patch('/guru/:id', verifyUser, updateProfileGuru)
 router.delete('/guru/:id', verifyUser, adminOnly, deleteGuru)
 
 module.exports = router;

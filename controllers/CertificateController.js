@@ -3,6 +3,7 @@ const fontkit = require('@pdf-lib/fontkit');
 const Siswa = require("../models/SiswaModel");
 const Modul = require("../models/ModulModel");
 const Certificate = require("../models/CertificateModel");
+const Nilai = require("../models/NilaiModel"); // ✅ Add Nilai import
 const Users = require("../models/UserModel.js");
 const { Op } = require("sequelize");
 const path = require("path");
@@ -22,6 +23,11 @@ const getCertificate = async (req, res) => {
             model: Modul,
             attributes: ["judul", "deskripsi"],
             as: "modul",
+          },
+          {
+            model: Nilai, // ✅ Add Nilai include
+            attributes: ["skor", "jumlahJawabanBenar", "jumlahSoal"],
+            as: "nilai",
           },
           {
             model: Users,
@@ -45,6 +51,11 @@ const getCertificate = async (req, res) => {
             model: Modul,
             attributes: ["judul", "deskripsi"],
             as: "modul",
+          },
+          {
+            model: Nilai, // ✅ Add Nilai include
+            attributes: ["skor", "jumlahJawabanBenar", "jumlahSoal"],
+            as: "nilai",
           },
           {
             model: Users,
@@ -79,6 +90,11 @@ const getCertificateById = async (req, res) => {
             as: "modul",
           },
           {
+            model: Nilai, // ✅ Add Nilai include
+            attributes: ["skor", "jumlahJawabanBenar", "jumlahSoal"],
+            as: "nilai",
+          },
+          {
             model: Users,
             attributes: ["username", "email", "role"],
           },
@@ -99,6 +115,11 @@ const getCertificateById = async (req, res) => {
             model: Modul,
             attributes: ["judul", "deskripsi"],
             as: "modul",
+          },
+          {
+            model: Nilai, // ✅ Add Nilai include
+            attributes: ["skor", "jumlahJawabanBenar", "jumlahSoal"],
+            as: "nilai",
           },
           {
             model: Users,
@@ -213,24 +234,45 @@ const serveCertificateFile = async (req, res) => {
 };
 
 const createCertificate = async (req, res) => {
-    try {
-    const { siswaId, modulId } = req.body;
+  try {
+    const { siswaId, modulId, nilaiId } = req.body; // ✅ Add nilaiId to destructuring
 
-    // Validasi input
-    if (!siswaId || !modulId) {
+    // ✅ Enhanced validation
+    if (!siswaId || !modulId || !nilaiId) {
       return res.status(400).json({ 
-        msg: "Siswa ID dan Modul ID wajib diisi" 
+        msg: "Siswa ID, Modul ID, dan Nilai ID wajib diisi" 
+      });
+    }
+
+    // ✅ Validate that nilaiId exists and belongs to the siswa
+    const nilai = await Nilai.findOne({
+      where: { 
+        id: nilaiId,
+        siswaId: siswaId
+      },
+      include: [{
+        model: require("../models/GroupSoalModel.js"),
+        as: "groupSoal",
+        where: {
+          modulId: modulId // Ensure the nilai is for the correct module
+        }
+      }]
+    });
+
+    if (!nilai) {
+      return res.status(404).json({ 
+        msg: "Nilai tidak ditemukan atau tidak sesuai dengan siswa dan modul yang dipilih" 
       });
     }
 
     // Cek apakah certificate sudah ada
     const existingCertificate = await Certificate.findOne({
-      where: { siswaId, modulId }
+      where: { siswaId, modulId, nilaiId }
     });
 
     if (existingCertificate) {
       return res.status(400).json({ 
-        msg: "Certificate untuk siswa dan modul ini sudah ada" 
+        msg: "Certificate untuk siswa, modul, dan nilai ini sudah ada" 
       });
     }
 
@@ -280,6 +322,7 @@ const createCertificate = async (req, res) => {
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Get current date
     const currentDate = new Date().toLocaleDateString('id-ID', {
@@ -288,40 +331,96 @@ const createCertificate = async (req, res) => {
       year: 'numeric'
     });
 
-    // ✅ Koordinat untuk menambahkan text (sesuaikan dengan template Anda)
-    // PENTING: Koordinat (0,0) ada di kiri bawah PDF, bukan kiri atas
+    // ✅ Enhanced text positioning and formatting
     
     // Nama siswa - biasanya di tengah certificate
-    firstPage.drawText(siswa.nama, {
-      x: width / 2 - (siswa.nama.length * 12), // Center horizontally (approximate)
-      y: height * 0.5, // 50% dari atas (sesuaikan dengan template)
-      size: 28,
+    const studentNameText = siswa.nama;
+    firstPage.drawText(studentNameText, {
+      x: width / 2 - (studentNameText.length * 12), // Center horizontally (approximate)
+      y: height * 0.55, // 55% dari atas (sesuaikan dengan template)
+      size: 32,
       font: timesRomanBoldFont,
       color: rgb(0.1, 0.1, 0.4), // Dark blue
     });
 
     // Judul modul - di bawah nama
-    firstPage.drawText(modul.judul, {
-      x: width / 2 - (modul.judul.length * 8), // Center horizontally (approximate)
-      y: height * 0.4, // 40% dari atas (sesuaikan dengan template)
-      size: 20,
+    const moduleTitleText = `"${modul.judul}"`;
+    firstPage.drawText(moduleTitleText, {
+      x: width / 2 - (moduleTitleText.length * 7), // Center horizontally (approximate)
+      y: height * 0.42, // 42% dari atas (sesuaikan dengan template)
+      size: 18,
       font: timesRomanFont,
       color: rgb(0.2, 0.2, 0.2), // Dark gray
     });
 
+    // ✅ NILAI SKOR - di bawah judul modul
+    const scoreText = `dengan nilai: ${parseFloat(nilai.skor).toFixed(1)}`;
+    const scoreDetailsText = `(${nilai.jumlahJawabanBenar}/${nilai.jumlahSoal} jawaban benar)`;
+    
+    // Skor utama
+    firstPage.drawText(scoreText, {
+      x: width / 2 - (scoreText.length * 6.5), // Center horizontally
+      y: height * 0.36, // 36% dari atas
+      size: 16,
+      font: helveticaBoldFont,
+      color: rgb(0.0, 0.5, 0.0), // Green color for score
+    });
+
+    // Detail skor
+    firstPage.drawText(scoreDetailsText, {
+      x: width / 2 - (scoreDetailsText.length * 4), // Center horizontally
+      y: height * 0.32, // 32% dari atas
+      size: 12,
+      font: helveticaFont,
+      color: rgb(0.4, 0.4, 0.4), // Gray color
+    });
+
+    // ✅ Grade/Predikat berdasarkan skor
+    let grade = "";
+    let gradeColor = rgb(0.5, 0.5, 0.5);
+    
+    if (nilai.skor >= 90) {
+      grade = "EXCELLENT";
+      gradeColor = rgb(0.0, 0.6, 0.0); // Dark green
+    } else if (nilai.skor >= 80) {
+      grade = "VERY GOOD";
+      gradeColor = rgb(0.2, 0.5, 0.0); // Green
+    } else if (nilai.skor >= 70) {
+      grade = "GOOD";
+      gradeColor = rgb(0.6, 0.4, 0.0); // Orange
+    } else if (nilai.skor >= 60) {
+      grade = "SATISFACTORY";
+      gradeColor = rgb(0.7, 0.3, 0.0); // Dark orange
+    } else {
+      grade = "NEEDS IMPROVEMENT";
+      gradeColor = rgb(0.7, 0.0, 0.0); // Red
+    }
+
+    firstPage.drawText(grade, {
+      x: width / 2 - (grade.length * 5), // Center horizontally
+      y: height * 0.27, // 27% dari atas
+      size: 14,
+      font: helveticaBoldFont,
+      color: gradeColor,
+    });
+
     // Tanggal - biasanya di kanan bawah
     firstPage.drawText(`Tanggal: ${currentDate}`, {
-      x: width * 0.65, // 65% dari kiri
-      y: height * 0.15, // 15% dari bawah
+      x: width * 0.6, // 60% dari kiri
+      y: height * 0.18, // 18% dari bawah
       size: 12,
       font: helveticaFont,
       color: rgb(0.3, 0.3, 0.3),
     });
 
-    // NIS siswa - tambahan info
+    // ✅ Enhanced student information section
+    const infoStartY = height * 0.14;
+    const infoLineHeight = height * 0.025;
+
+    // NIS siswa
     firstPage.drawText(`NIS: ${siswa.nis}`, {
-      x: width * 0.65,
-      y: height * 0.12,
+      x: width * 0.6,
+      y: infoStartY,
       size: 10,
       font: helveticaFont,
       color: rgb(0.4, 0.4, 0.4),
@@ -330,17 +429,27 @@ const createCertificate = async (req, res) => {
     // Kelas siswa
     if (siswa.kelas) {
       firstPage.drawText(`Kelas: ${siswa.kelas.namaKelas}`, {
-        x: width * 0.65,
-        y: height * 0.09,
+        x: width * 0.6,
+        y: infoStartY - infoLineHeight,
         size: 10,
         font: helveticaFont,
         color: rgb(0.4, 0.4, 0.4),
       });
     }
 
+    // Certificate ID untuk tracking
+    const certificateId = `CERT-${siswa.nis}-${modul.id}-${Date.now()}`;
+    firstPage.drawText(`ID: ${certificateId}`, {
+      x: width * 0.6,
+      y: infoStartY - (infoLineHeight * 2),
+      size: 8,
+      font: helveticaFont,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
     // Generate unique filename
     const timestamp = Date.now();
-    const filename = `certificate_${siswa.nis}_${modul.id}_${timestamp}.pdf`;
+    const filename = `certificate_${siswa.nis}_${modul.id}_${nilaiId}_${timestamp}.pdf`;
     const certificatePath = path.join(__dirname, '../public/certificates', filename);
 
     // Ensure certificates directory exists
@@ -353,20 +462,21 @@ const createCertificate = async (req, res) => {
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(certificatePath, pdfBytes);
 
-    // Generate URL - use the new API endpoint
+    // Generate URL - use the certificates static route
     const certificateUrl = `${req.protocol}://${req.get("host")}/certificates/${filename}`;
 
-    // Save to database
+    // ✅ Save to database with nilaiId
     const newCertificate = await Certificate.create({
       siswaId: siswaId,
       modulId: modulId,
+      nilaiId: nilaiId, // ✅ Add nilaiId
       certificateFile: filename,
       certificateUrl: certificateUrl,
       tanggalDiterbitkan: new Date(),
       userId: req.userId
     });
 
-    // Response dengan data lengkap
+    // ✅ Response dengan data lengkap including nilai
     const certificateWithDetails = await Certificate.findByPk(newCertificate.id, {
       include: [
         {
@@ -380,13 +490,27 @@ const createCertificate = async (req, res) => {
         {
           model: Modul,
           as: "modul"
+        },
+        {
+          model: Nilai, // ✅ Include nilai details
+          as: "nilai"
         }
       ]
     });
 
     res.status(201).json({
       msg: "Certificate berhasil digenerate",
-      certificate: certificateWithDetails
+      certificate: certificateWithDetails,
+      additionalInfo: {
+        grade: grade,
+        certificateId: certificateId,
+        scoreDetails: {
+          finalScore: parseFloat(nilai.skor).toFixed(1),
+          correctAnswers: nilai.jumlahJawabanBenar,
+          totalQuestions: nilai.jumlahSoal,
+          percentage: ((nilai.jumlahJawabanBenar / nilai.jumlahSoal) * 100).toFixed(1)
+        }
+      }
     });
 
   } catch (error) {
@@ -438,5 +562,5 @@ module.exports = {
     getCertificateById,
     createCertificate,
     deleteCertificate,
-    serveCertificateFile // ✅ Export function baru
+    serveCertificateFile
 };

@@ -17,6 +17,13 @@ const GroupSoal = db.define('group_soal', {
             notEmpty: true
         }
     },
+    modulId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+            notEmpty: true
+        }
+    },
     userId:{
         type: DataTypes.INTEGER,
         allowNull: false,

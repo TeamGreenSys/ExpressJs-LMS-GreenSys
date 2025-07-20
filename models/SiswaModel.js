@@ -13,6 +13,9 @@ const Siswa = db.define('siswa', {
     email: {
         type: DataTypes.STRING
     },
+    noHp: {
+        type: DataTypes.STRING
+    },
     kelasId: {
         type: DataTypes.INTEGER,
         allowNull: false,

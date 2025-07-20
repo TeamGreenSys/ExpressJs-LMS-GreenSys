@@ -94,6 +94,20 @@ function setupAssociations() {
     hooks: true,
   });
 
+  // ✅ NEW: Certificate-Nilai Association
+  Nilai.hasMany(Certificate, {
+    foreignKey: "nilaiId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Certificate.belongsTo(Nilai, {
+    foreignKey: "nilaiId",
+    as: "nilai",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+
+  // Student Progress Associations
   Siswa.hasMany(StudentProgress, {
     foreignKey: "siswaId",
     onDelete: "CASCADE",
@@ -139,6 +153,17 @@ function setupAssociations() {
   GroupSoal.belongsTo(Kelas, {
     foreignKey: "kelasId",
     as: "kelas",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  Modul.hasOne(GroupSoal, {
+    foreignKey: "modulId",
+    onDelete: "CASCADE",
+    hooks: true,
+  });
+  GroupSoal.belongsTo(Modul, {
+    foreignKey: "modulId",
+    as: "modul",
     onDelete: "CASCADE",
     hooks: true,
   });
@@ -205,7 +230,6 @@ function setupAssociations() {
     onDelete: "CASCADE",
     hooks: true,
   });
-
 }
 
 module.exports = setupAssociations;

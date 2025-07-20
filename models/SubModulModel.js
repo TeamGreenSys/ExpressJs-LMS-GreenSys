@@ -14,6 +14,18 @@ const SubModul = db.define('sub_modul', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    time: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    namaPdf: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    urlPdf: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     coverImage: {
         type: DataTypes.STRING,
         allowNull: true

@@ -137,6 +137,7 @@ const createSiswa = async (req, res) => {
     const nis = req.body.nis;
     const nama = req.body.nama;
     const email = req.body.email;
+    const noHp = req.body.noHp;
     const kelasId = req.body.kelasId;
     const gender = req.body.gender;
     const tanggalLahir = req.body.tanggalLahir;
@@ -175,6 +176,7 @@ const createSiswa = async (req, res) => {
       nis: nis,
       nama: nama,
       email: email,
+      noHp: noHp,
       kelasId: kelasId,
       gender: gender,
       tanggalLahir: tanggalLahir,
@@ -244,6 +246,7 @@ const updateProfile = async (req, res) => {
   const nis = req.body.nis;
   const nama = req.body.nama;
   const email = req.body.email;
+  const noHp = req.body.noHp;
   const kelasId = req.body.kelasId;
   const gender = req.body.gender;
   const tanggalLahir = req.body.tanggalLahir;
@@ -260,6 +263,7 @@ const updateProfile = async (req, res) => {
         nis: nis,
         nama: nama,
         email: email,
+        noHp: noHp,
         kelasId: kelasId,
         gender: gender,
         tanggalLahir: tanggalLahir,

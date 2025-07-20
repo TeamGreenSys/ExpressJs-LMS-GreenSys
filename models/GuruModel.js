@@ -13,6 +13,9 @@ const Guru = db.define('guru', {
     email: {
         type: DataTypes.STRING
     },
+    noHp: {
+        type: DataTypes.STRING
+    },
     gender: {
         type: DataTypes.STRING
     },
