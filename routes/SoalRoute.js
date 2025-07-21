@@ -9,11 +9,13 @@ const {
   deleteSoal,
   
   // Statistics
-  getSoalStatistics
+  getSoalStatistics,
+  getSoal
 } = require("../controllers/SoalController.js");
 const { verifyUser } = require("../middleware/AuthUser.js");
 
 // Soal Routes
+router.get("/soal", verifyUser, getSoal);
 router.get("/soal-by-group/:groupId", getSoalByGroupId);
 router.get("/soal/:id", verifyUser, getSoalById);
 router.post("/soal", verifyUser, createSoal);

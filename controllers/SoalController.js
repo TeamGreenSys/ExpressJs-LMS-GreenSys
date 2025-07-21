@@ -4,6 +4,33 @@ const Kelas = require("../models/KelasModel.js");
 const Users = require("../models/UserModel.js");
 const { Op } = require("sequelize");
 
+const getSoal = async (req, res) => {
+    try {
+        if (req.role === "admin" || req.role === "guru") {
+            const soal = await Soal.findAll({
+                include: [{
+                    model: Users,
+                    attributes: ['username', 'email', 'role']
+                }],
+            });
+            res.status(200).json(soal);
+        } else {
+            const soal = await Soal.findAll({
+                where: {
+                    userId: req.userId,
+                },
+                include: [{
+                    model: Users,
+                    attributes: ['username', 'email', 'role']
+                }],
+            });
+            res.status(200).json(soal);
+        }
+    } catch (error) {
+        res.status(500).json({ msg: error.message })
+    }
+}
+
 const getSoalByGroupId = async (req, res) => {
   try {
     const { groupId } = req.params;
@@ -336,6 +363,7 @@ const getSoalStatistics = async (req, res) => {
 
 module.exports = {
   // Soal
+  getSoal,
   getSoalByGroupId,
   getSoalById,
   createSoal,
