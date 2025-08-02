@@ -333,119 +333,86 @@ const createCertificate = async (req, res) => {
 
     // ✅ Enhanced text positioning and formatting
     
-    // Nama siswa - biasanya di tengah certificate
-    const studentNameText = siswa.nama;
-    firstPage.drawText(studentNameText, {
-      x: width / 2 - (studentNameText.length * 12), // Center horizontally (approximate)
-      y: height * 0.55, // 55% dari atas (sesuaikan dengan template)
-      size: 32,
-      font: timesRomanBoldFont,
-      color: rgb(0.1, 0.1, 0.4), // Dark blue
-    });
+// Nama siswa - center, larger font (matching frontend: 84px bold Times)
+const studentNameText = siswa.nama;
+const studentNameFontSize = 42; // PDF font size roughly half of canvas font size
+firstPage.drawText(studentNameText, {
+  x: width / 2 - (studentNameText.length * (studentNameFontSize * 0.3)), // Better centering calculation
+  y: height * 0.55, // Frontend: 45% from top, PDF: 55% (inverted coordinate system)
+  size: studentNameFontSize,
+  font: timesRomanBoldFont,
+  color: rgb(0.12, 0.23, 0.54), // #1e3a8a (blue-900) converted to RGB
+});
 
-    // Judul modul - di bawah nama
-    const moduleTitleText = `"${modul.judul}"`;
-    firstPage.drawText(moduleTitleText, {
-      x: width / 2 - (moduleTitleText.length * 7), // Center horizontally (approximate)
-      y: height * 0.42, // 42% dari atas (sesuaikan dengan template)
-      size: 18,
-      font: timesRomanFont,
-      color: rgb(0.2, 0.2, 0.2), // Dark gray
-    });
+// Judul modul - below nama (matching frontend: 54px italic Times)
+const moduleText = `"telah menyelesaikan modul ${modul.judul}"`;
+const moduleFontSize = 27; // Roughly half of 54px
+firstPage.drawText(moduleText, {
+  x: width / 2 - (moduleText.length * (moduleFontSize * 0.25)), // Better centering for italic text
+  y: height * 0.49, // Frontend: 51% from top, PDF: 49% (adjusted for PDF coordinates)
+  size: moduleFontSize,
+  font: timesRomanFont, // Using regular font as PDF-lib doesn't have built-in italic
+  color: rgb(0.22, 0.25, 0.32), // #374151 (gray-700) converted to RGB
+});
 
-    // ✅ NILAI SKOR - di bawah judul modul
-    const scoreText = `dengan nilai: ${parseFloat(nilai.skor).toFixed(1)}`;
-    const scoreDetailsText = `(${nilai.jumlahJawabanBenar}/${nilai.jumlahSoal} jawaban benar)`;
-    
-    // Skor utama
-    firstPage.drawText(scoreText, {
-      x: width / 2 - (scoreText.length * 6.5), // Center horizontally
-      y: height * 0.36, // 36% dari atas
-      size: 16,
-      font: helveticaBoldFont,
-      color: rgb(0.0, 0.5, 0.0), // Green color for score
-    });
+// ✅ NILAI SKOR - matching frontend positioning and styling
+const scoreText = `dengan nilai: ${parseFloat(nilai.skor).toFixed(0)}`;
+const scoreFontSize = 24; // Half of 48px from frontend
 
-    // Detail skor
-    firstPage.drawText(scoreDetailsText, {
-      x: width / 2 - (scoreDetailsText.length * 4), // Center horizontally
-      y: height * 0.32, // 32% dari atas
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0.4, 0.4, 0.4), // Gray color
-    });
+// Main score (matching frontend: bold 48px Arial, green-600)
+firstPage.drawText(scoreText, {
+  x: width / 2 - (scoreText.length * (scoreFontSize * 0.3)), // Center horizontally
+  y: height * 0.44, // Frontend: 56% from top, PDF: 44% (adjusted)
+  size: scoreFontSize,
+  font: helveticaBoldFont, // Arial equivalent
+  color: rgb(0.02, 0.59, 0.41), // #059669 (green-600) converted to RGB
+});
 
-    // ✅ Grade/Predikat berdasarkan skor
-    let grade = "";
-    let gradeColor = rgb(0.5, 0.5, 0.5);
-    
-    if (nilai.skor >= 90) {
-      grade = "EXCELLENT";
-      gradeColor = rgb(0.0, 0.6, 0.0); // Dark green
-    } else if (nilai.skor >= 80) {
-      grade = "VERY GOOD";
-      gradeColor = rgb(0.2, 0.5, 0.0); // Green
-    } else if (nilai.skor >= 70) {
-      grade = "GOOD";
-      gradeColor = rgb(0.6, 0.4, 0.0); // Orange
-    } else if (nilai.skor >= 60) {
-      grade = "SATISFACTORY";
-      gradeColor = rgb(0.7, 0.3, 0.0); // Dark orange
-    } else {
-      grade = "NEEDS IMPROVEMENT";
-      gradeColor = rgb(0.7, 0.0, 0.0); // Red
-    }
+// ✅ Enhanced bottom section - matching frontend exactly
+const infoStartX = width * 0.65; // Same as frontend
+const infoStartY = height * 0.18; // Frontend: 82% from top, PDF: 18% from bottom
+const lineHeight = height * 0.03; // Same as frontend
 
-    firstPage.drawText(grade, {
-      x: width / 2 - (grade.length * 5), // Center horizontally
-      y: height * 0.27, // 27% dari atas
-      size: 14,
-      font: helveticaBoldFont,
-      color: gradeColor,
-    });
+// currentDate already declared above, no need to redeclare
 
-    // Tanggal - biasanya di kanan bawah
-    firstPage.drawText(`Tanggal: ${currentDate}`, {
-      x: width * 0.6, // 60% dari kiri
-      y: height * 0.18, // 18% dari bawah
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0.3, 0.3, 0.3),
-    });
+// Tanggal (matching frontend: 24px Arial, gray-600)
+firstPage.drawText(`Tanggal: ${currentDate}`, {
+  x: infoStartX,
+  y: infoStartY,
+  size: 12, // Half of 24px
+  font: helveticaFont, // Arial equivalent
+  color: rgb(0.29, 0.34, 0.39), // #4b5563 (gray-600) converted to RGB
+});
 
-    // ✅ Enhanced student information section
-    const infoStartY = height * 0.14;
-    const infoLineHeight = height * 0.025;
+// NIS siswa (matching frontend: 20px Arial, gray-500)
+firstPage.drawText(`NIS: ${siswa.nis}`, {
+  x: infoStartX,
+  y: infoStartY - lineHeight,
+  size: 10, // Half of 20px
+  font: helveticaFont,
+  color: rgb(0.42, 0.45, 0.50), // #6b7280 (gray-500) converted to RGB
+});
 
-    // NIS siswa
-    firstPage.drawText(`NIS: ${siswa.nis}`, {
-      x: width * 0.6,
-      y: infoStartY,
-      size: 10,
-      font: helveticaFont,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+// Kelas siswa (matching frontend: 20px Arial, gray-500)
+if (siswa.kelas) {
+  firstPage.drawText(`Kelas: ${siswa.kelas.namaKelas}`, {
+    x: infoStartX,
+    y: infoStartY - (lineHeight * 2),
+    size: 10, // Half of 20px
+    font: helveticaFont,
+    color: rgb(0.42, 0.45, 0.50), // #6b7280 (gray-500) converted to RGB
+  });
+}
 
-    // Kelas siswa
-    if (siswa.kelas) {
-      firstPage.drawText(`Kelas: ${siswa.kelas.namaKelas}`, {
-        x: width * 0.6,
-        y: infoStartY - infoLineHeight,
-        size: 10,
-        font: helveticaFont,
-        color: rgb(0.4, 0.4, 0.4),
-      });
-    }
-
-    // Certificate ID untuk tracking
-    const certificateId = `CERT-${siswa.nis}-${modul.id}-${Date.now()}`;
-    firstPage.drawText(`ID: ${certificateId}`, {
-      x: width * 0.6,
-      y: infoStartY - (infoLineHeight * 2),
-      size: 8,
-      font: helveticaFont,
-      color: rgb(0.5, 0.5, 0.5),
-    });
+// Certificate ID untuk tracking (matching frontend: 16px Arial, gray-400)
+const certificateId = `CERT-${siswa.nis}-${modul.id}-${nilai.id}`; // Using nilai.id like frontend
+firstPage.drawText(`ID: ${certificateId}`, {
+  x: infoStartX,
+  y: infoStartY - (lineHeight * 3),
+  size: 8, // Half of 16px
+  font: helveticaFont,
+  color: rgb(0.61, 0.64, 0.69), // #9ca3af (gray-400) converted to RGB
+});
 
     // Generate unique filename
     const timestamp = Date.now();
