@@ -237,6 +237,8 @@ const updateSoal = async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      judul,
+      cerita,
       soal,
       optionA,
       optionB,
@@ -289,8 +291,65 @@ const updateSoal = async (req, res) => {
       }
     }
 
+    let fileName = existingSoal.image;
+    let url = existingSoal.url;
+
+    // Check if user wants to remove image completely
+    if (req.body.removeImage === "true") {
+      // Delete existing image file
+      if (existingSoal.image) {
+        const filepath = `./public/images/${existingSoal.image}`;
+        try {
+          if (fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+          }
+        } catch (err) {
+          console.log("Error deleting file:", err);
+        }
+      }
+      fileName = null;
+      url = null;
+    }
+    // Check if new image is uploaded
+    else if (req.files && req.files.file) {
+      const file = req.files.file;
+      const fileSize = file.data.length;
+      const ext = path.extname(file.name);
+      const now = Date.now();
+      fileName = now + file.md5 + ext;
+      const allowedType = [".png", ".jpg", ".jpeg"];
+
+      if (!allowedType.includes(ext.toLowerCase()))
+        return res.status(422).json({ msg: "Invalid Images" });
+      if (fileSize > 5000000)
+        return res.status(422).json({ msg: "Image must be less than 5 MB" });
+
+      // Delete old image if exists
+      if (existingSoal.image) {
+        const filepath = `./public/images/${existingSoal.image}`;
+        try {
+          if (fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+          }
+        } catch (err) {
+          console.log("Error deleting old file:", err);
+        }
+      }
+
+      // Upload new image
+      file.mv(`./public/images/${fileName}`, (err) => {
+        if (err) return res.status(500).json({ msg: err.message });
+      });
+
+      url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+    }
+
     // Update soal
     await existingSoal.update({
+      judul,
+      image: fileName,
+      url: url,
+      cerita,
       soal,
       optionA,
       optionB,
@@ -328,11 +387,10 @@ const updateSoal = async (req, res) => {
 const deleteSoal = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.userId;
 
     // Check if soal exists and belongs to user
     const soal = await Soal.findOne({
-      where: { id, userId },
+      where: { id },
     });
 
     if (!soal) {
@@ -341,14 +399,30 @@ const deleteSoal = async (req, res) => {
       });
     }
 
-    // Delete soal - PERBAIKAN: gunakan destroy dengan where
+    // Delete image file if it exists
+    if (soal.image) {
+      const filepath = `./public/images/${soal.image}`;
+      
+      // Check if file exists before trying to delete it
+      if (fs.existsSync(filepath)) {
+        try {
+          fs.unlinkSync(filepath);
+        } catch (fileError) {
+          console.error("Error deleting image file:", fileError);
+          // Continue with soal deletion even if image deletion fails
+        }
+      }
+    }
+
+    // Delete soal from database
     await Soal.destroy({
-      where: { id, userId },
+      where: { id },
     });
 
     res.status(200).json({
       message: "Soal berhasil dihapus",
     });
+    
   } catch (error) {
     console.error("Error deleting soal:", error);
     res.status(500).json({
