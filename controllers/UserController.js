@@ -234,14 +234,14 @@ const sendLinkResetPassword = async (req, res) => {
 
         // Configure email transporter
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.hostinger.com",
+            port: 465,
             auth: {
                 user: process.env.EMAIL,
                 pass: process.env.APP_PASSWORD,
             },
             // Add these options for better email delivery
             secure: true,
-            requireTLS: true,
         });
 
         // Read email template
@@ -253,7 +253,7 @@ const sendLinkResetPassword = async (req, res) => {
 
         // Email content
         const mailOptions = {
-            from: "support@sma1lhokseumawe",
+            from: "support.admin@ruangbertunas.id",
             to: email,
             subject: 'Reset Kata Sandi',
             html: customizedHtml,
