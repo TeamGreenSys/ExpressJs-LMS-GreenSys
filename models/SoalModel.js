@@ -4,6 +4,20 @@ const db = require("../config/Database.js");
 const { DataTypes } = Sequelize;
 
 const Soal = db.define('soal', {
+    judul: {
+        type: DataTypes.STRING
+    },
+    image: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    cerita: {
+        type: DataTypes.TEXT
+    },
     soal: {
         type: DataTypes.TEXT
     },

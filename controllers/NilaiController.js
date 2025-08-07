@@ -38,6 +38,10 @@ const getQuizByGroupId = async (req, res) => {
       attributes: [
         "id",
         "soal",
+        "judul",
+        "image",
+        "url",
+        "cerita",
         "optionA",
         "optionB",
         "optionC",
@@ -270,6 +274,10 @@ const getQuizResult = async (req, res) => {
               as: "soal",
               attributes: [
                 "soal",
+                "judul",
+                "image",
+                "url",
+                "cerita",
                 "optionA",
                 "optionB",
                 "optionC",
