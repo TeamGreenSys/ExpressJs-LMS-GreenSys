@@ -100,26 +100,10 @@ const getModulById = async (req, res) => {
 };
 
 const createModul = async (req, res) => {
-  if (req.files === null)
-    return res.status(400).json({ msg: "No File Uploaded" });
   const { judul, deskripsi } = req.body;
 
-  const file = req.files.file;
-  const fileSize = file.data.length;
-  const ext = path.extname(file.name);
-  const now = Date.now();
-  const fileName = now + file.md5 + ext;
-  const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
-  const allowedType = [".png", ".jpg", ".jpeg"];
-
-  if (!allowedType.includes(ext.toLowerCase()))
-    return res.status(422).json({ msg: "Invalid Image" });
-
-  if (fileSize > 5000000)
-    return res.status(422).json({ msg: "Image must be less than 5 MB" });
-
-  file.mv(`./public/images/${fileName}`, async (err) => {
-    if (err) return res.status(500).json({ msg: err.message });
+  // Helper function untuk membuat modul
+  const createModulRecord = async (imageData = {}) => {
     try {
       const userId = req.userId;
 
@@ -132,17 +116,52 @@ const createModul = async (req, res) => {
       await Modul.create({
         judul: judul,
         deskripsi: deskripsi,
-        image: fileName,
-        url: url,
+        image: imageData.fileName || null,
+        url: imageData.url || null,
         userId: req.userId,
       });
 
-      res.json({ msg: "Modul Created" });
+      const message = imageData.fileName 
+        ? "Modul Created with Image" 
+        : "Modul Created without Image";
+      
+      res.json({ msg: message });
     } catch (error) {
       console.log(error);
       res.status(500).json({ error: "Internal Server Error" });
     }
-  });
+  };
+
+  // Cek apakah ada file yang diupload
+  if (req.files && req.files.file) {
+    // Jika ada file, proses upload seperti biasa
+    const file = req.files.file;
+    const fileSize = file.data.length;
+    const ext = path.extname(file.name);
+    const now = Date.now();
+    const fileName = now + file.md5 + ext;
+    const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+    const allowedType = [".png", ".jpg", ".jpeg"];
+
+    // Validasi tipe file
+    if (!allowedType.includes(ext.toLowerCase()))
+      return res.status(422).json({ msg: "Invalid Image" });
+
+    // Validasi ukuran file
+    if (fileSize > 5000000)
+      return res.status(422).json({ msg: "Image must be less than 5 MB" });
+
+    // Upload file
+    file.mv(`./public/images/${fileName}`, async (err) => {
+      if (err) return res.status(500).json({ msg: err.message });
+      
+      // Buat modul dengan image
+      await createModulRecord({ fileName, url });
+    });
+  } else {
+    // Jika tidak ada file, buat modul tanpa image
+    await createModulRecord();
+  }
 };
 
 const updateModul = async (req, res) => {
