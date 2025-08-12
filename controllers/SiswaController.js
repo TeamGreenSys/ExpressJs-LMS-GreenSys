@@ -154,7 +154,8 @@ const createSiswa = async (req, res) => {
       const ext = path.extname(file.name);
       const now = Date.now();
       fileName = now + file.md5 + ext;
-      url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+      url = `${baseUrl}/images/${fileName}`;
       const allowedType = [".png", ".jpg", ".jpeg"];
 
       // Validate file type
@@ -255,7 +256,8 @@ const updateProfile = async (req, res) => {
   const persentaseVisual = req.body.persentaseVisual;
   const persentaseAuditori = req.body.persentaseAuditori;
   const persentaseKinestetik = req.body.persentaseKinestetik;
-  const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+  const url = `${baseUrl}/images/${fileName}`;
 
   try {
     await Siswa.update(

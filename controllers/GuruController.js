@@ -134,7 +134,8 @@ const createGuru = async (req, res) => {
         const ext = path.extname(file.name);
         const now = Date.now();
         fileName = now + file.md5 + ext;
-        url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+        url = `${baseUrl}/images/${fileName}`;
         const allowedType = [".png", ".jpg", ".jpeg"];
         
         // Validate file type
@@ -225,7 +226,8 @@ const createGuru = async (req, res) => {
     const gender = req.body.gender;
     const tanggalLahir = req.body.tanggalLahir;
     const alamat = req.body.alamat;
-    const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+    const url = `${baseUrl}/images/${fileName}`;
   
     try {
       await Guru.update(
