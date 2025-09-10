@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize");
 
-const db = new Sequelize('db_lms', 'admin_greensys', 'greensys', {
-    host: '31.97.49.141',
+const db = new Sequelize('db_lms', process.env.DB_USERNAME, process.env.DB_PASSWORD, {
+    host: process.env.DB_HOST_IP,
     port: 3306,
     dialect: 'mysql'
 })
